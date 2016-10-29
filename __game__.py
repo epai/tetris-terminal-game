@@ -6,13 +6,10 @@
 ### TO DO:  IMPLEMENT LANDING, IMPLEMENT COLLISION DETECTION,
 ###			IMPLEMENT LINE CLEARING
 
-from random import randint
+import random
 from __setup__ import *
 
 class Game:
-
-	PIECES = Pieces()
-	NUM_PIECES = PIECES.num_pieces
 	TIME = 0.1
 
 	def __init__(self, rows=23, columns=10):
@@ -22,8 +19,8 @@ class Game:
 		self.gamePver = False
 		self.currPiece = None
 		self.clearedLines = 0
-		num = randint(1, Game.NUM_PIECES)
-		self.nextPiece = Game.PIECES.getPiece(num)
+		self.pieces = makePieces()
+		self.nextPiece = random.choice(self.pieces)
 		self.gameOver = False
 		self.clearLinesAnimation = None
 		self.clearLinesBoolean = False
@@ -32,17 +29,14 @@ class Game:
 
 	def newPiece(self):
 		self.currPiece = self.nextPiece
-		num = randint(1, Game.NUM_PIECES)
-		self.nextPiece = Game.PIECES.getPiece(num)
-		if num == 1:
+		self.nextPiece = random.choice(self.pieces)
+		if self.nextPiece == self.pieces[0]:
 			self.currPiece.topLeft = Position(0, 4)
 		else:
 			self.currPiece.topLeft = Position(0, 3)
 		p = self.currPiece
-		rows = range(p.getHeight())
-		cols = range(p.getWidth())
-		for r in rows:
-			for c in cols:
+		for r in range(p.getHeight()):
+			for c in range(p.getWidth()):
 				if p.shape[r][c] != 0:
 					row = r + p.topLeft.row
 					col = c + p.topLeft.col

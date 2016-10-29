@@ -13,8 +13,8 @@ class Tetrimino:
 		self.shape = shape
 		self.originShape = shape
 		self.topLeft = topLeft
-		self.rotations = {}
 		self.currRotation = 0; # index of current rotation
+		self.rotations = self.getRotations(shape)
 
 	def getWidth(self):
 		return len(self.shape[0])
@@ -31,168 +31,69 @@ class Tetrimino:
 	def getNextLeft(self):
 		return Position(self.topLeft.row, self.topLeft.col - 1)
 
-	def setRotations(self, rotations):
+	def getRotations(self, shape):
 		""" takes in a set of rotations (as tuples) and sets them. """
-		for i in range(len(rotations)):
-			self.rotations[i] = rotations[i]
+		currRotation = shape
+		rotations = []
+		for _ in range(len(shape)):
+			reversedRotation = currRotation[::-1]
+			currRotation = [[row[i] for row in reversedRotation]
+					for i in range(len(shape))]
+			rotations.append(currRotation)
+		rotations.append(shape)
+		return rotations
 
 	def getNextRotation(self):
 		temp = self.rotations[self.currRotation]
 		self.currRotation = (self.currRotation + 1) % len(self.rotations)
 		return temp
 
+def makePieces():
+	raw_pieces = \
+	"""
+	.X..
+	.X..
+	.X..
+	.X..
 
-class Pieces:
-	""" Uses the Nintendo Rotation system for rotations.
-		http://tetris.wikia.com/wiki/
-		Nintendo_Rotation_System?file=NESTetris-pieces.png"""
-	I = Tetrimino(\
-		((0, 1, 0, 0),
-		(0, 1, 0, 0),
-		(0, 1, 0, 0),
-		(0, 1, 0, 0)))
-	I_rotations = \
-		(
-			(
-			(0, 0, 0, 0),
-			(0, 0, 0, 0),
-			(1, 1, 1, 1),
-			(0, 0, 0, 0)),
-			(
-			(0, 1, 0, 0),
-			(0, 1, 0, 0),
-			(0, 1, 0, 0),
-			(0, 1, 0, 0))
-		)
-	I.setRotations(I_rotations)
+	...
+	XXX
+	..X
 
-	J = Tetrimino(\
-		((0, 0, 0),
-		(2, 2, 2),
-		(0, 0, 2)))
-	J_rotations = \
-		(
-			(
-			(0, 2, 0),
-			(0, 2, 0),
-			(2, 2, 0)),
-			(
-			(2, 0, 0),
-			(2, 2, 2),
-			(0, 0, 0)),
-			(
-			(0, 2, 2),
-			(0, 2, 0),
-			(0, 2, 0)),
-			(
-			(0, 0, 0),
-			(2, 2, 2),
-			(0, 0, 2))
-		)
-	J.setRotations(J_rotations)
+	...
+	XXX
+	X..
 
-	L = Tetrimino(\
-		((0, 0, 0),
-		(3, 3, 3),
-		(3, 0, 0)))
-	L_rotations = \
-		(
-			(
-			(3, 3, 0),
-			(0, 3, 0),
-			(0, 3, 0)),
-			(
-			(0, 0, 3),
-			(3, 3, 3),
-			(0, 0, 0)),
-			(
-			(0, 3, 0),
-			(0, 3, 0),
-			(0, 3, 3)),
-			(
-			(0, 0, 0),
-			(3, 3, 3),
-			(3, 0, 0))
-		)
-	L.setRotations(L_rotations)
+	....
+	.XX.
+	.XX.
+	....
 
-	O = Tetrimino(\
-		((0, 0, 0, 0),
-		(0, 4, 4, 0),
-		(0, 4, 4, 0),
-		(0, 0, 0, 0)))
-	O_rotations = \
-		((
-			(0, 0, 0, 0),
-			(0, 4, 4, 0),
-			(0, 4, 4, 0),
-			(0, 0, 0, 0)),)
-	O.setRotations(O_rotations)
+	...
+	.XX
+	XX.
 
-	S = Tetrimino(\
-		((0, 0, 0),
-		(0, 5, 5),
-		(5, 5, 0)))
-	S_rotations = \
-		(
-			(
-			(0, 5, 0),
-			(0, 5, 5),
-			(0, 0, 5)),
-			(
-			(0, 0, 0),
-			(0, 5, 5),
-			(5, 5, 0))
-		)
-	S.setRotations(S_rotations)
+	...
+	XXX
+	.X.
 
-	T = Tetrimino(\
-		((0, 0, 0),
-		(6, 6, 6),
-		(0, 6, 0)))
-	T_rotations = \
-		(
-			(
-			(0, 6, 0),
-			(6, 6, 0),
-			(0, 6, 0)),
-			(
-			(0, 6, 0),
-			(6, 6, 6),
-			(0, 0, 0)),
-			(
-			(0, 6, 0),
-			(0, 6, 6),
-			(0, 6, 0)),
-			(
-			(0, 0, 0),
-			(6, 6, 6),
-			(0, 6, 0))
-		)
-	T.setRotations(T_rotations)
+	...
+	XX.
+	.XX
+	"""
+	pieces = [[[i + 1 if ch == 'X' else 0 for ch in row.strip()]
+				for row in piece.split('\n') if row.strip()]
+				for i, piece in enumerate(raw_pieces.split('\n\n'))]
+	pieces = [Tetrimino(piece) for piece in pieces]
+	pieces[0].rotations = pieces[0].rotations[:2] # L piece
+	pieces[3].rotations = pieces[3].rotations[:1] # O piece
+	pieces[4].rotations = pieces[4].rotations[:2] # s piece
+	pieces[6].rotations = pieces[6].rotations[:2] # z piece
+	return pieces
 
-	Z = Tetrimino(\
-		((0, 0, 0),
-		(7, 7, 0),
-		(0, 7, 7)))
-	Z_rotations = \
-		(
-			(
-			(0, 0, 7),
-			(0, 7, 7),
-			(0, 7, 0)),
-			(
-			(0, 0, 0),
-			(7, 7, 0),
-			(0, 7, 7))
-		)
-	Z.setRotations(Z_rotations)
 
-	pieces = {1 : I, 2 : J, 3 : L, 4 : O, 5 : S, 6 : T, 7 : Z}
 
-	num_pieces = len(pieces)
 
-	def getPiece(self, num):
-		""" Takes in a piece number and returns the corresponding piece. """
-		return Pieces.pieces[num]
+
+
 

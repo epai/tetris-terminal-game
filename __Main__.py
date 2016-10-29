@@ -27,6 +27,8 @@ class Main:
         self.version = 0.92
         ### curses setup ###
         self.stdscr = curses.initscr()
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
         curses.noecho()
         curses.cbreak()
         self.stdscr.keypad(True)
@@ -39,6 +41,9 @@ class Main:
         ### other ###
         self.rows, self.columns = \
                 [int(x) for x in os.popen('stty size', 'r').read().split()]
+
+    def addstr(x, y, msg):
+        self.stdscrn.addstr(x, y, msg, curses.color_pair(1))
 
     def doWelcome(self):
         self.stdscr.addstr(0, 0, welcomeMessage[0])
@@ -147,11 +152,11 @@ class Main:
 
     def doMenu(self):
         def printMenu():
-            self.stdscr.addstr(5, 24, "┌--------------------------------┐")
-            self.stdscr.addstr(6, 24, "|           GAME PAUSED          |")
-            self.stdscr.addstr(7, 24, "|                                |")
-            self.stdscr.addstr(8, 24, "| Controls:                      |")
-            self.stdscr.addstr(9, 24, "|               ^ Rotate Piece   |")
+            self.stdscr.addstr(5, 24,  "┌--------------------------------┐")
+            self.stdscr.addstr(6, 24,  "|           GAME PAUSED          |")
+            self.stdscr.addstr(7, 24,  "|                                |")
+            self.stdscr.addstr(8, 24,  "| Controls:                      |")
+            self.stdscr.addstr(9, 24,  "|               ^ Rotate Piece   |")
             self.stdscr.addstr(10, 24, "|               |                |")
             self.stdscr.addstr(11, 24, "| Move left <--   --> Move right |")
             self.stdscr.addstr(12, 24, "|               |                |")
