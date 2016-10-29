@@ -27,8 +27,7 @@ class Main:
         self.version = 0.92
         ### curses setup ###
         self.stdscr = curses.initscr()
-        curses.start_color()
-        curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
+        self.setupColors()
         curses.noecho()
         curses.cbreak()
         self.stdscr.keypad(True)
@@ -42,8 +41,23 @@ class Main:
         self.rows, self.columns = \
                 [int(x) for x in os.popen('stty size', 'r').read().split()]
 
-    def addstr(x, y, msg):
-        self.stdscrn.addstr(x, y, msg, curses.color_pair(1))
+    def setupColors(self):
+        curses.start_color()
+        self.has_colors = curses.has_colors()
+        if self.has_colors:
+            colors = [
+                curses.COLOR_RED,
+                curses.COLOR_YELLOW,
+                curses.COLOR_MAGENTA,
+                curses.COLOR_BLUE,
+                curses.COLOR_CYAN,
+                curses.COLOR_GREEN,
+                curses.COLOR_BLACK
+            ]
+            for i, color in enumerate(colors):
+                curses.init_pair(i + 1, color, color)
+            curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_WHITE)
+            self.boardColor = curses.color_pair(10)
 
     def doWelcome(self):
         self.stdscr.addstr(0, 0, welcomeMessage[0])
@@ -120,6 +134,18 @@ class Main:
                         self.down_counter = 1
                 self.refreshAnimation()
 
+    def displayBoard(self):
+        boardString = self.g.toString()
+        if not self.has_colors:
+            self.stdscr.addstr(0, 0, self.g.toString())
+            return
+        for y, line in enumerate(boardString.split("\n")):
+            for x, ch in enumerate(line):
+                if ch.isdigit():
+                    color = int(ch)
+                    self.stdscr.addstr(y, x, ch, curses.color_pair(color))
+                else:
+                    self.stdscr.addstr(y, x, ch, self.boardColor)
 
     def doMove(self):
         last_move = 0
@@ -131,8 +157,7 @@ class Main:
                 curses.delay_output(self.time)
                 if not self.has_landed:
                     self.has_landed = self.g.fallPiece()
-                    self.g.updateBoard()
-                    self.stdscr.addstr(0, 0, self.g.toString())
+                    self.displayBoard()
                 if self.has_landed:
                     self.down_counter = 1
             if c == curses.KEY_LEFT: # moves blocks to the left
@@ -193,9 +218,10 @@ class Main:
         self.stdscr.nodelay(True)
 
     def refreshAnimation(self):
+        self.stdscr.clear()
         curses.delay_output(self.time) # change so updates in real time
         self.down_counter += 1
-        self.stdscr.addstr(0, 0, self.g.toString())
+        self.displayBoard()
         # score
         self.stdscr.addstr(20, 52, "lines completed: {0}".format(self.g.clearedLines))
         self.stdscr.addstr(22, 42, "Type 'q' to quit, 'm' for menu,")

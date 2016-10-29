@@ -164,25 +164,23 @@ class Game:
 	def toString(self):
 		rows = len(self.board)
 		cols = len(self.board[0])
-		result = "|=|" * (cols + 2) + "\n"
+		result = ".." * (cols + 2) + "\n"
 		self.updateBoard()
 		for r in range(1, rows):
-			result += "|\|"
+			result += "||"
 			for c in range(cols):
 				if self.board[r][c] == "▓":
 					result += "▓▓▓"
 				elif self.board[r][c] != 0:
-					result += "[{0}]".format(self.board[r][c])
+					result += "{0}{0}".format(self.board[r][c])
 				else:
-					result += "   "
-			result += "|/|\n"
-		result += "|=|" * (cols + 2)
+					result += "  "
+			result += "||\n"
+		result += "^^" * (cols + 2)
 		return result
 
 	def nextPieceToString(self):
 		result = []
-		#print(self.nextPiece.getHeight())
-		#print(self.nextPiece.getWidth())
 		shapeRows = range(self.nextPiece.getHeight())
 		shapeColumns = range(self.nextPiece.getWidth())
 		for r in shapeRows:
