@@ -7,9 +7,12 @@ class Position:
 	def __init__(self, row, column):
 		self.row = row
 		self.col = column
+	def __str__(self):
+		return '({},{})'.format(self.row, self.col)
 
 class Tetrimino:
-	def __init__(self, shape, topLeft=Position(0, 0)):
+	def __init__(self, color, shape, topLeft=Position(0, 0)):
+		self.color = color
 		self.shape = shape
 		self.originShape = shape
 		self.topLeft = topLeft
@@ -81,10 +84,10 @@ def makePieces():
 	XX.
 	.XX
 	"""
-	pieces = [[[i + 1 if ch == 'X' else 0 for ch in row.strip()]
-				for row in piece.split('\n') if row.strip()]
+	pieces = [(i+1, [[i + 1 if ch == 'X' else 0 for ch in row.strip()]
+				for row in piece.split('\n') if row.strip()])
 				for i, piece in enumerate(raw_pieces.split('\n\n'))]
-	pieces = [Tetrimino(piece) for piece in pieces]
+	pieces = [Tetrimino(color, piece) for color, piece in pieces]
 	pieces[0].rotations = pieces[0].rotations[:2] # L piece
 	pieces[3].rotations = pieces[3].rotations[:1] # O piece
 	pieces[4].rotations = pieces[4].rotations[:2] # s piece

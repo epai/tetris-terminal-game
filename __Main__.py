@@ -52,11 +52,11 @@ class Main:
                 curses.COLOR_BLUE,
                 curses.COLOR_CYAN,
                 curses.COLOR_GREEN,
-                curses.COLOR_BLACK
+                curses.COLOR_WHITE,
             ]
             for i, color in enumerate(colors):
                 curses.init_pair(i + 1, color, color)
-            curses.init_pair(10, curses.COLOR_BLACK, curses.COLOR_WHITE)
+            curses.init_pair(10, curses.COLOR_WHITE, curses.COLOR_BLACK)
             self.boardColor = curses.color_pair(10)
 
     def doWelcome(self):
@@ -99,21 +99,6 @@ class Main:
             curses.delay_output(5)
             blink_counter += 1
             self.stdscr.refresh()
-        # self.stdscr.clear()
-        # self.stdscr.refresh()
-        # self.stdscr.addstr(11, 22, "ready ...")
-        # self.stdscr.refresh()
-        # curses.delay_output(500)
-        # self.stdscr.addstr(11, 32, "set ...")
-        # self.stdscr.refresh()
-        # curses.delay_output(500)
-        # self.stdscr.addstr(9, 40,  "┌-----------┐")
-        # self.stdscr.addstr(10, 40, "|           |")
-        # self.stdscr.addstr(11, 40, "|    GO!    |")
-        # self.stdscr.addstr(12, 40, "|           |")
-        # self.stdscr.addstr(13, 40, "└-----------┘")
-        # self.stdscr.refresh()
-        # curses.delay_output(500)
 
     def gameLoop(self):
         while True:
@@ -143,7 +128,10 @@ class Main:
             for x, ch in enumerate(line):
                 if ch.isdigit():
                     color = int(ch)
-                    self.stdscr.addstr(y, x, ch, curses.color_pair(color))
+                    if color == 9:
+                        self.stdscr.addstr(y, x, '░', self.boardColor)
+                    else:
+                        self.stdscr.addstr(y, x, ch, curses.color_pair(color))
                 else:
                     self.stdscr.addstr(y, x, ch, self.boardColor)
 
@@ -234,8 +222,13 @@ class Main:
         for i in range(len(self.nextPieceBoarder)):
             self.stdscr.addstr(i + 1, 49, self.nextPieceBoarder[i])
         nextPieceLines = self.g.nextPieceToString()
-        for i in range(len(nextPieceLines)):
-            self.stdscr.addstr(i + 5, 53, nextPieceLines[i])
+        for i, line in enumerate(nextPieceLines):
+            for j, ch in enumerate(line):
+                if ch.isdigit():
+                    color = int(ch)
+                    self.stdscr.addstr(i + 5, 56 + j, ch, curses.color_pair(color))
+                else:
+                    self.stdscr.addstr(i + 5, 56 + j, ch, self.boardColor)
         if self.g.clearedLines - self.level_constant*self.g.level >= 0:
             self.down_constant -= self.level_decrement
             self.g.level += 1

@@ -7,6 +7,7 @@
 ###			IMPLEMENT LINE CLEARING
 
 import random
+from copy import deepcopy
 from __setup__ import *
 
 class Game:
@@ -14,8 +15,9 @@ class Game:
 
 	def __init__(self, rows=23, columns=10):
 		self.board = [[0 for c in range(columns)] for r in range(rows)]
-		self.emptyBoard = self.board
-		self.landed = [[0 for c in range(columns)] for r in range(rows)]
+		self.emptyBoard = deepcopy(self.board)
+		self.landed = deepcopy(self.board)
+		self.simulateLanded = deepcopy(self.board)
 		self.gamePver = False
 		self.currPiece = None
 		self.clearedLines = 0
@@ -43,6 +45,33 @@ class Game:
 					if self.landed[row][col] != 0:
 						self.gameOver = True
 						return
+
+	def simulateLand(self):
+		currTopLeft = self.currPiece.getNextFall()
+		rows = range(self.currPiece.getHeight())
+		cols = range(self.currPiece.getWidth())
+		landed = False
+		while not landed:
+			for r in rows:
+				for c in cols:
+					if self.currPiece.shape[r][c] != 0:
+						row = r + currTopLeft.row
+						col = c + currTopLeft.col
+						if row >= len(self.landed) or self.landed[row][col] != 0:
+							landed = True
+							break
+			if landed == True:
+				break
+			currTopLeft.row += 1
+		shapeRows = range(self.currPiece.getHeight())
+		shapeColumns = range(self.currPiece.getWidth())
+		for r in shapeRows:
+			for c in shapeColumns:
+				if self.currPiece.shape[r][c] != 0:
+					row = r + currTopLeft.row - 1
+					col = c + currTopLeft.col
+					self.simulateLanded[row][col] = self.currPiece.shape[r][c]
+
 
 	def fallPiece(self):
 		nextTopLeft = self.currPiece.getNextFall()
@@ -88,19 +117,22 @@ class Game:
 		nextRotation = p.getNextRotation()
 		rows = range(len(nextRotation))
 		cols = range(len(nextRotation[0]))
-		for r in rows:
-			for c in cols:
-				if nextRotation[r][c] != 0:
-					row = r + topLeft.row
-					col = c + topLeft.col
-					if col < 0:
-						self.movePiece(1)
-						#return
-					elif col >= len(self.landed[0]):
-						self.movePiece(-1)
-						#return
-					elif self.landed[row][col] != 0:
-						return
+		try:
+			for r in rows:
+				for c in cols:
+					if nextRotation[r][c] != 0:
+						row = r + topLeft.row
+						col = c + topLeft.col
+						if col < 0:
+							self.movePiece(1)
+							#return
+						elif col >= len(self.landed[0]):
+							self.movePiece(-1)
+							#return
+						elif self.landed[row][col] != 0:
+							return
+		except IndexError as e:
+			return
 		self.currPiece.shape = nextRotation
 
 	def landPiece(self):
@@ -129,31 +161,26 @@ class Game:
 					isFilled = False
 			if isFilled:
 				empty = [0]*len(self.landed[0])
-				# solid = ["▓"]*len(self.landed[0])
-				# for _ in range(2):
-				# 	self.landed = self.landed[:row] + [solid] + self.landed[row+1:]
-				# 	animation += [self.toString()]
-				# 	self.landed = self.landed[:row] + [empty] + self.landed[row+1:]
-				# 	animation += [self.toString()]
 				self.landed = [empty] + self.landed[:row] + self.landed[row+1:]
 				self.clearedLines += 1
 				score += len(self.board[0]) * self.level * 1000
 				combo += 1
 		self.score += score * combo
-		# self.clearLinesAnimation = animation
-		# self.clearLinesBoolean = True
-
 
 	def updateBoard(self):
 		""" Updates board to include landed[] and curr tetrimino piece """
-		self.board = self.emptyBoard
+		self.board = deepcopy(self.emptyBoard)
+		self.simulateLanded = deepcopy(self.emptyBoard)
+		self.simulateLand()
 		rows = range(len(self.board))
 		columns = range(len(self.board[0]))
+		shapeRows = range(self.currPiece.getHeight())
+		shapeColumns = range(self.currPiece.getWidth())
 		for r in rows:
 			for c in columns:
 				self.board[r][c] = self.landed[r][c]
-		shapeRows = range(self.currPiece.getHeight())
-		shapeColumns = range(self.currPiece.getWidth())
+				if self.simulateLanded[r][c]:
+					self.board[r][c] = 9
 		for r in shapeRows:
 			for c in shapeColumns:
 				if self.currPiece.shape[r][c] != 0:
@@ -169,9 +196,7 @@ class Game:
 		for r in range(1, rows):
 			result += "||"
 			for c in range(cols):
-				if self.board[r][c] == "▓":
-					result += "▓▓▓"
-				elif self.board[r][c] != 0:
+				if self.board[r][c] != 0:
 					result += "{0}{0}".format(self.board[r][c])
 				else:
 					result += "  "
@@ -187,8 +212,8 @@ class Game:
 			line = ""
 			for c in shapeColumns:
 				if self.nextPiece.originShape[r][c] == 0:
-					line += "   "
+					line += "  "
 				else:
-					line += "[{0}]".format(self.nextPiece.originShape[r][c])
+					line += "{0}{0}".format(self.nextPiece.originShape[r][c])
 			result += [line]
 		return result
