@@ -10,6 +10,21 @@ import random
 from copy import deepcopy
 from __setup__ import *
 
+class RollDeck():
+	def __init__(self, deck):
+		self.originLength = len(deck)
+		self.deck = []
+		[self.deck.extend(deepcopy(deck)) for _ in range(3)] # make two copies of deck
+		self.originalDeck = deepcopy(self.deck)
+		random.shuffle(self.deck)
+
+	def draw(self):
+		card = self.deck.pop()
+		if len(self.deck) < self.originLength:
+			self.deck = self.originalDeck
+			random.shuffle(self.deck)
+		return card
+
 class Game:
 	TIME = 0.1
 
@@ -22,7 +37,8 @@ class Game:
 		self.currPiece = None
 		self.clearedLines = 0
 		self.pieces = makePieces()
-		self.nextPiece = random.choice(self.pieces)
+		self.deck = RollDeck(self.pieces)
+		self.nextPiece = self.deck.draw()
 		self.gameOver = False
 		self.clearLinesAnimation = None
 		self.clearLinesBoolean = False
@@ -31,7 +47,7 @@ class Game:
 
 	def newPiece(self):
 		self.currPiece = self.nextPiece
-		self.nextPiece = random.choice(self.pieces)
+		self.nextPiece = self.deck.draw()
 		if self.nextPiece == self.pieces[0]:
 			self.currPiece.topLeft = Position(0, 4)
 		else:
