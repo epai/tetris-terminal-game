@@ -161,6 +161,10 @@ class Main:
                 self.doQuit()
             elif c == ord('p'):
                 self.doPause()
+            elif c == ord(' '): # if spacebar, immediately drop to bottom
+                self.g.dropPiece()
+                self.has_landed = True
+                break
         self.g.movePiece(last_move)
 
     def doMenu(self):

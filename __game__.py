@@ -111,6 +111,11 @@ class Game:
 						return
 		self.currPiece.topLeft = nextTopLeft
 
+	def dropPiece(self):
+		fallen = False
+		while not fallen:
+			fallen = self.fallPiece()
+
 	def rotatePiece(self):
 		p = self.currPiece
 		topLeft = p.topLeft
