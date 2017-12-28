@@ -21,7 +21,7 @@ class RollDeck():
 	def draw(self):
 		card = self.deck.pop()
 		if len(self.deck) < self.originLength:
-			self.deck = self.originalDeck
+			self.deck = deepcopy(self.originalDeck)
 			random.shuffle(self.deck)
 		return card
 

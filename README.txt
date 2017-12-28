@@ -8,9 +8,9 @@ Tetris Clone.  Runs in terminal.  Implemented in Python using ncurses library.
 to run, type:
 python3 tetris.py
 
-Objective:  
-Clear lines by placing tetris pieces strategically.  
-If the pieces stack up to the top, you lose.  
+Objective:
+Clear lines by placing tetris pieces strategically.
+If the pieces stack up to the top, you lose.
 Try to get to level 11!
 
 Keyboard inputs:

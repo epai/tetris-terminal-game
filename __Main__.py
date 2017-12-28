@@ -160,9 +160,13 @@ class Main:
             elif c == ord(' '): # if spacebar, immediately drop to bottom
                 self.g.dropPiece()
                 self.has_landed = True
+<<<<<<< Updated upstream
                 break
             elif c == ord('q'):
                 self.doQuit()
+=======
+                self.down_counter = 1
+>>>>>>> Stashed changes
         self.g.movePiece(last_move)
 
     def doPause(self):
