@@ -155,15 +155,13 @@ class Main:
             elif not shape_change and c == curses.KEY_UP: # rotates piece
                 self.g.rotatePiece()
                 shape_change = True
-            elif c == ord('m'):
-                self.doMenu()
-            elif c == ord('q'):
-                self.doQuit()
             elif c == ord('p'):
                 self.doPause()
+            elif c == ord('q'):
+                self.doQuit()
         self.g.movePiece(last_move)
 
-    def doMenu(self):
+    def doPause(self):
         def printMenu():
             self.stdscr.addstr(5, 24,  "┌--------------------------------┐")
             self.stdscr.addstr(6, 24,  "|           GAME PAUSED          |")
@@ -175,7 +173,7 @@ class Main:
             self.stdscr.addstr(12, 24, "|               |                |")
             self.stdscr.addstr(13, 24, "|               V Fall faster    |")
             self.stdscr.addstr(14, 24, "|                                |")
-            self.stdscr.addstr(15, 24, "|    Type 'm' to resume,         |")
+            self.stdscr.addstr(15, 24, "|    Type 'p' to resume,         |")
             self.stdscr.addstr(16, 24, "|         'q' to quit            |")
             self.stdscr.addstr(17, 24, "|         'r' to restart         |")
             self.stdscr.addstr(18, 24, "└--------------------------------┘")
@@ -183,26 +181,13 @@ class Main:
         printMenu()
         self.stdscr.nodelay(False)
         c = self.stdscr.getch()
-        while c not in (ord('q'), ord('r'), ord('m')):
+        while c not in (ord('q'), ord('r'), ord('p')):
             c = self.stdscr.getch()
         if c == ord('q'):
             self.doQuit()
             printMenu()
         if c == ord('r'):
             self.restart = True
-        self.stdscr.nodelay(True)
-
-    def doPause(self):
-        self.stdscr.addstr(9, 22, "┌----------------------------┐")
-        self.stdscr.addstr(10, 22, "|                            |")
-        self.stdscr.addstr(11, 22, "|       Game is Paused       |")
-        self.stdscr.addstr(12, 22, "|    press 'p' to unpause    |")
-        self.stdscr.addstr(13, 22, "|                            |")
-        self.stdscr.addstr(14, 22, "└----------------------------┘")
-        self.stdscr.nodelay(False)
-        c = self.stdscr.getch()
-        while c != ord('p'):
-            c = self.stdscr.getch()
         self.stdscr.nodelay(True)
 
     def refreshAnimation(self):
@@ -212,8 +197,7 @@ class Main:
         self.displayBoard()
         # score
         self.stdscr.addstr(20, 52, "lines completed: {0}".format(self.g.clearedLines))
-        self.stdscr.addstr(22, 42, "Type 'q' to quit, 'm' for menu,")
-        self.stdscr.addstr(23, 52, "'p' to pause.")
+        self.stdscr.addstr(22, 42, "Type 'q' to quit or 'p' for pause.")
         self.stdscr.addstr(15, 52, "level: {0}".format(self.g.level))
         self.stdscr.addstr(17, 48, "--------------------------")
         self.stdscr.addstr(18, 48, "    Score {:,}             ".format(self.g.score))
