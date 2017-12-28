@@ -8,7 +8,7 @@
 
 import random
 from copy import deepcopy
-from __setup__ import *
+from tetris.setup import *
 
 class RollDeck():
 	def __init__(self, deck):
@@ -21,7 +21,7 @@ class RollDeck():
 	def draw(self):
 		card = self.deck.pop()
 		if len(self.deck) < self.originLength:
-			self.deck = deepcopy(self.originalDeck)
+			self.deck = self.originalDeck
 			random.shuffle(self.deck)
 		return card
 

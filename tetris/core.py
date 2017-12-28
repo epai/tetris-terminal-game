@@ -5,8 +5,8 @@ import os
 import sys
 import curses
 #import locale
-from __game__ import *
-from __welcome__ import *
+from tetris.game import *
+from tetris.welcome import *
 
 class Main:
     ### FIELDS and SETUP ###
