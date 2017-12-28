@@ -1,11 +1,3 @@
-# Eric Pai
-# Spring 2014
-
-""" Game Logic and internal representation for tetris.py """
-
-### TO DO:  IMPLEMENT LANDING, IMPLEMENT COLLISION DETECTION,
-###			IMPLEMENT LINE CLEARING
-
 import random
 from copy import deepcopy
 from tetris import setup
@@ -82,7 +74,6 @@ class Game:
 
 	def __init__(self, rows=23, cols=10):
 		self.landed = Board.empty(rows, cols)
-		self.simulated = Board.empty(rows, cols)
 
 		self.deck = RollDeck(setup.pieces)
 		self.next_piece = self.create_piece()
@@ -93,12 +84,10 @@ class Game:
 		self.score = 0
 		self.level = 1
 
-
 	def create_piece(self):
 		proto_piece = self.deck.draw()
 		col = 0 if proto_piece == setup.prototypes['I'] else 3
 		return proto_piece.create(origin=setup.Pos(0, col))
-
 
 	def new_piece(self):
 		self.curr_piece = self.next_piece
@@ -106,24 +95,19 @@ class Game:
 		if self.landed.collides_with(self.curr_piece):
 			self.has_ended = True
 
-
 	def fall_piece(self):
 		down_piece = self.curr_piece.down
-
 		if self.landed.collides_with(down_piece):
 			self.landed = self.landed.with_piece(self.curr_piece)
 			self.clear_lines()
 			return True
-
 		self.curr_piece = down_piece
 		return False
-
 
 	def drop_piece(self):
 		fallen = False
 		while not fallen:
 			fallen = self.fall_piece()
-
 
 	def move_piece(self, movedir):
 		if not movedir:
@@ -133,12 +117,10 @@ class Game:
 		if self.landed.contains(moved_piece):
 			self.curr_piece = moved_piece
 
-
 	def rotate_piece(self):
 		rotated_piece = self.curr_piece.rotated
 		moved_piece = self.landed.move_inbounds(rotated_piece)
 		self.curr_piece = moved_piece
-
 
 	def simulate_land(self):
 		landed = False
@@ -146,12 +128,7 @@ class Game:
 		while not self.landed.collides_with(piece):
 			piece = piece.down
 		# get piece right before it collided
-
-		# add back in board...
-		piece = piece.up
-		return piece
-
-
+		return piece.up
 
 	def clear_lines(self):
 		score, combo = 0, 0
@@ -171,15 +148,9 @@ class Game:
 
 	def __str__(self):
 		board = self.landed
-
-		self.simulated = Board.empty(self.landed.width, self.landed.height)
 		piece = self.simulate_land()
-		board = board.with_piece(piece, 9)
-
-		board = board.with_piece(self.curr_piece)
-
+		board = board.with_piece(piece, 9).with_piece(self.curr_piece)
 		result = ".." * (board.width + 2) + "\n"
-		# self.updateBoard()
 		for r in range(1, board.height):
 			result += "||"
 			for c in range(board.width):

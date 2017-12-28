@@ -1,6 +1,3 @@
-# Eric Pai
-# Started: Spring 2014
-
 from tetris.gui import Main
 
 m = Main()

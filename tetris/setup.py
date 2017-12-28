@@ -1,12 +1,6 @@
-# Eric Pai
-# Spring 2014
-
-""" Includes all supporting data structures used by game.py """
-
-from textwrap import dedent
-
 import enum
 import curses
+from textwrap import dedent
 
 class Pos:
 	def __init__(self, y, x):
@@ -82,8 +76,6 @@ class Piece:
 					line += "{0}{0}".format(self.prototype.shape[r][c])
 			result += [line]
 		return result
-
-
 
 
 	def copy(self, rotation=None, origin=None):

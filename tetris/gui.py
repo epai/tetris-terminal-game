@@ -1,10 +1,6 @@
-# Eric Pai
-# Spring 2014
-
 import os
 import sys
 import curses
-#import locale
 from tetris.game import *
 from tetris.welcome import *
 from tetris import setup
