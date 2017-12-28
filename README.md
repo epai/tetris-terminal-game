@@ -63,4 +63,5 @@ Thanks for playing!
 - carlos caballero
 - jordon wing
 
-## p.s. What was my motivation?  A friend told me that animation in the terminal couldn't be done.  I wanted to prove him wrong, and then some.  So I implemented a full functioning tetris in the terminal. :)
+## P.S. What was my motivation?
+A friend told me that animation in the terminal couldn't be done.  I wanted to prove him wrong, and then some.  So I implemented a full functioning tetris in the terminal. :)

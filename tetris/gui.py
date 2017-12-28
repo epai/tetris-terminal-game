@@ -7,6 +7,7 @@ import curses
 #import locale
 from tetris.game import *
 from tetris.welcome import *
+from tetris import setup
 
 class Main:
     ### FIELDS and SETUP ###
@@ -24,7 +25,7 @@ class Main:
     ########################
 
     def __init__(self):
-        self.version = 0.92
+        self.version = '1.0.0'
         ### curses setup ###
         self.stdscr = curses.initscr()
         self.setupColors()
@@ -44,20 +45,10 @@ class Main:
     def setupColors(self):
         curses.start_color()
         self.has_colors = curses.has_colors()
-        if self.has_colors:
-            colors = [
-                curses.COLOR_RED,
-                curses.COLOR_YELLOW,
-                curses.COLOR_MAGENTA,
-                curses.COLOR_BLUE,
-                curses.COLOR_CYAN,
-                curses.COLOR_GREEN,
-                curses.COLOR_WHITE,
-            ]
-            for i, color in enumerate(colors):
-                curses.init_pair(i + 1, color, color)
-            curses.init_pair(10, curses.COLOR_WHITE, curses.COLOR_BLACK)
-            self.boardColor = curses.color_pair(10)
+        for color in setup.Color:
+            curses.init_pair(color.value, color.value, color.value)
+        curses.init_pair(10, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        self.boardColor = curses.color_pair(10)
 
     def doWelcome(self):
         self.stdscr.addstr(0, 0, welcomeMessage[0])
@@ -104,10 +95,11 @@ class Main:
         while True:
             self.doRestart()
             while True:
-                if self.g.gameOver:
+
+                if self.g.has_ended:
                     self.doGameOver()
                 if self.has_landed:
-                    self.g.newPiece()
+                    self.g.new_piece()
                     self.has_landed = False
                 else:
                     self.doMove()
@@ -115,14 +107,14 @@ class Main:
                         break
                     if not self.has_landed and \
                            self.down_counter == self.down_constant:  # do fall
-                        self.has_landed = self.g.fallPiece()
+                        self.has_landed = self.g.fall_piece()
                         self.down_counter = 1
                 self.refreshAnimation()
 
     def displayBoard(self):
-        boardString = self.g.toString()
+        boardString = str(self.g)
         if not self.has_colors:
-            self.stdscr.addstr(0, 0, self.g.toString())
+            self.stdscr.addstr(0, 0, boardString)
             return
         for y, line in enumerate(boardString.split("\n")):
             for x, ch in enumerate(line):
@@ -144,7 +136,7 @@ class Main:
                 self.down_counter = self.down_constant
                 curses.delay_output(self.time)
                 if not self.has_landed:
-                    self.has_landed = self.g.fallPiece()
+                    self.has_landed = self.g.fall_piece()
                     self.displayBoard()
                 if self.has_landed:
                     self.down_counter = 1
@@ -153,18 +145,18 @@ class Main:
             elif c == curses.KEY_RIGHT: # moves piece to the right
                 last_move = 1
             elif not shape_change and c == curses.KEY_UP: # rotates piece
-                self.g.rotatePiece()
+                self.g.rotate_piece()
                 shape_change = True
             elif c == ord('p'):
                 self.doPause()
             elif c == ord(' '): # if spacebar, immediately drop to bottom
-                self.g.dropPiece()
+                self.g.drop_piece()
                 self.has_landed = True
                 break
             elif c == ord('q'):
                 self.doQuit()
                 self.down_counter = 1
-        self.g.movePiece(last_move)
+        self.g.move_piece(last_move)
 
     def doPause(self):
         def printMenu():
@@ -201,7 +193,7 @@ class Main:
         self.down_counter += 1
         self.displayBoard()
         # score
-        self.stdscr.addstr(20, 52, "lines completed: {0}".format(self.g.clearedLines))
+        self.stdscr.addstr(20, 52, "lines completed: {0}".format(self.g.cleared_lines))
         self.stdscr.addstr(22, 42, "Type 'q' to quit or 'p' for pause.")
         self.stdscr.addstr(15, 52, "level: {0}".format(self.g.level))
         self.stdscr.addstr(17, 48, "--------------------------")
@@ -210,7 +202,7 @@ class Main:
         # next piece box
         for i in range(len(self.nextPieceBoarder)):
             self.stdscr.addstr(i + 1, 49, self.nextPieceBoarder[i])
-        nextPieceLines = self.g.nextPieceToString()
+        nextPieceLines = self.g.next_piece.to_lines()
         for i, line in enumerate(nextPieceLines):
             for j, ch in enumerate(line):
                 if ch.isdigit():
@@ -218,7 +210,7 @@ class Main:
                     self.stdscr.addstr(i + 5, 56 + j, ch, curses.color_pair(color))
                 else:
                     self.stdscr.addstr(i + 5, 56 + j, ch, self.boardColor)
-        if self.g.clearedLines - self.level_constant*self.g.level >= 0:
+        if self.g.cleared_lines - self.level_constant*self.g.level >= 0:
             self.down_constant -= self.level_decrement
             self.g.level += 1
             if self.g.level == 11:

@@ -1,7 +1,7 @@
 # Eric Pai
 # Started: Spring 2014
 
-from tetris.core import Main
+from tetris.gui import Main
 
 m = Main()
 

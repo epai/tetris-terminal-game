@@ -3,96 +3,188 @@
 
 """ Includes all supporting data structures used by game.py """
 
-class Position:
-	def __init__(self, row, column):
-		self.row = row
-		self.col = column
+from textwrap import dedent
+
+import enum
+import curses
+
+class Pos:
+	def __init__(self, y, x):
+		self.row = self.y = y
+		self.col = self.x = x
+
 	def __str__(self):
-		return '({},{})'.format(self.row, self.col)
+		return '({},{})'.format(self.y, self.x)
 
-class Tetrimino:
-	def __init__(self, color, shape, topLeft=Position(0, 0)):
-		self.color = color
+	def __iter__(self):
+		return iter((self.row, self.col))
+
+@enum.unique
+class Color(enum.Enum):
+	RED = curses.COLOR_RED
+	YELLOW = curses.COLOR_YELLOW
+	MAGENTA = curses.COLOR_MAGENTA
+	BLUE = curses.COLOR_BLUE
+	CYAN = curses.COLOR_CYAN
+	GREEN = curses.COLOR_GREEN
+	WHITE = curses.COLOR_WHITE
+
+
+class Shape:
+	def __init__(self, rows):
+		assert len(rows) == len(rows[0]), "Shapes must have the same width and height"
+		self.rows = rows
+
+	@classmethod
+	def from_string(cls, string, color):
+		row_strs = (row.strip() for row in dedent(string).split('\n'))
+		make_row = lambda row: [color if ch == 'X' else 0 for ch in row]
+		rows = [make_row(row) for row in row_strs if row]
+		return cls(rows)
+
+	@property
+	def rotated(self):
+		rotated_rows = list(zip(*self.rows))[::-1]
+		return Shape(rotated_rows)
+
+	def __len__(self):
+		return len(self.rows)
+
+	def __getitem__(self, index):
+		return self.rows[index]
+
+
+class Piece:
+	def __init__(self, prototype, origin, rotation=0):
+		self.prototype = prototype
+		self.rotation = rotation
+		self.origin = origin
+		self.shape = prototype.rotations[rotation]
+		self.height = len(self.shape)
+		self.width = len(self.shape[0])
+
+	def iterate(self, all=False):
+		for r in range(self.height):
+			for c in range(self.width):
+				if all or self.shape[r][c] != 0:
+					location = Pos(r + self.origin.row, c + self.origin.col)
+					relative = Pos(r, c)
+					yield (location, relative)
+
+	def to_lines(self):
+		result = []
+		for r in range(self.height):
+			line = ""
+			for c in range(self.width):
+				if self.prototype.shape[r][c] == 0:
+					line += "  "
+				else:
+					line += "{0}{0}".format(self.prototype.shape[r][c])
+			result += [line]
+		return result
+
+
+
+
+	def copy(self, rotation=None, origin=None):
+		if rotation is None:
+			rotation = self.rotation
+		return Piece(self.prototype, origin or self.origin, rotation)
+
+	@property
+	def down(self):
+		return self.copy(origin=Pos(self.origin.row + 1, self.origin.col))
+
+	@property
+	def up(self):
+		return self.copy(origin=Pos(self.origin.row - 1, self.origin.col))
+
+	@property
+	def right(self):
+		return self.copy(origin=Pos(self.origin.row, self.origin.col + 1))
+
+	@property
+	def left(self):
+		return self.copy(origin=Pos(self.origin.row, self.origin.col - 1))
+
+	@property
+	def rotated(self):
+		import time
+
+		next_rotation = (self.rotation + 1) % len(self.prototype.rotations)
+		return self.copy(rotation=next_rotation)
+
+
+
+class ProtoPiece:
+	def __init__(self, color, shape, rotations=None):
+		shape = Shape.from_string(shape, color.value)
+
 		self.shape = shape
-		self.originShape = shape
-		self.topLeft = topLeft
-		self.currRotation = 0; # index of current rotation
-		self.rotations = self.getRotations(shape)
+		self.rotations = [shape]
 
-	def getWidth(self):
-		return len(self.shape[0])
+		num_rotations = (rotations or len(shape)) - 1
+		for _ in range(num_rotations):
+			shape = shape.rotated
+			self.rotations.append(shape)
 
-	def getHeight(self):
-		return len(self.shape)
+		self.rotations = self.rotations[::-1]
 
-	def getNextFall(self):
-		return Position(self.topLeft.row + 1, self.topLeft.col)
+	def create(self, origin=None):
+		origin = origin or Pos(0, 0)
+		return Piece(self, origin)
 
-	def getNextRight(self):
-		return Position(self.topLeft.row, self.topLeft.col + 1)
 
-	def getNextLeft(self):
-		return Position(self.topLeft.row, self.topLeft.col - 1)
 
-	def getRotations(self, shape):
-		""" takes in a set of rotations (as tuples) and sets them. """
-		currRotation = shape
-		rotations = []
-		for _ in range(len(shape)):
-			reversedRotation = currRotation[::-1]
-			currRotation = [[row[i] for row in reversedRotation]
-					for i in range(len(shape))]
-			rotations.append(currRotation)
-		rotations.append(shape)
-		return rotations
+prototypes = {
+	'I': ProtoPiece(Color.RED,
+		"""
+		.X..
+		.X..
+		.X..
+		.X..
+		""", 2),
+	'J': ProtoPiece(Color.YELLOW,
+		"""
+		...
+		XXX
+		..X
+		""", 4),
+	'L': ProtoPiece(Color.MAGENTA,
+		"""
+		...
+		XXX
+		X..
+		""", 4),
+	'O': ProtoPiece(Color.BLUE,
+		"""
+		....
+		.XX.
+		.XX.
+		....
+		""", 1),
+	'S': ProtoPiece(Color.CYAN,
+		"""
+		...
+		.XX
+		XX.
+		""", 2),
+	'T': ProtoPiece(Color.GREEN,
+		"""
+		...
+		XXX
+		.X.
+		""", 4),
+	'Z': ProtoPiece(Color.WHITE,
+		"""
+		...
+		XX.
+		.XX
+		""", 2),
+}
 
-	def getNextRotation(self):
-		temp = self.rotations[self.currRotation]
-		self.currRotation = (self.currRotation + 1) % len(self.rotations)
-		return temp
 
-def makePieces():
-	raw_pieces = \
-	"""
-	.X..
-	.X..
-	.X..
-	.X..
-
-	...
-	XXX
-	..X
-
-	...
-	XXX
-	X..
-
-	....
-	.XX.
-	.XX.
-	....
-
-	...
-	.XX
-	XX.
-
-	...
-	XXX
-	.X.
-
-	...
-	XX.
-	.XX
-	"""
-	pieces = [(i+1, [[i + 1 if ch == 'X' else 0 for ch in row.strip()]
-				for row in piece.split('\n') if row.strip()])
-				for i, piece in enumerate(raw_pieces.split('\n\n'))]
-	pieces = [Tetrimino(color, piece) for color, piece in pieces]
-	pieces[0].rotations = pieces[0].rotations[:2] # L piece
-	pieces[3].rotations = pieces[3].rotations[:1] # O piece
-	pieces[4].rotations = pieces[4].rotations[:2] # s piece
-	pieces[6].rotations = pieces[6].rotations[:2] # z piece
-	return pieces
+pieces = prototypes.values()
 
 
 
