@@ -57,10 +57,10 @@ class Piece:
 		self.height = len(self.shape)
 		self.width = len(self.shape[0])
 
-	def iterate(self, all=False):
+	def __iter__(self):
 		for r in range(self.height):
 			for c in range(self.width):
-				if all or self.shape[r][c] != 0:
+				if self.shape[r][c] != 0:
 					location = Pos(r + self.origin.row, c + self.origin.col)
 					relative = Pos(r, c)
 					yield (location, relative)

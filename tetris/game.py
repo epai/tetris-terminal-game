@@ -40,20 +40,20 @@ class Board:
 		return cls(rows)
 
 	def collides_with(self, piece):
-		for (row, col), _ in piece.iterate():
+		for (row, col), _ in piece:
 			if row >= len(self.rows) or self.rows[row][col] != 0:
 				return True
 		return False
 
 	def contains(self, piece):
-		for (row, col), _ in piece.iterate():
+		for (row, col), _ in piece:
 			if col < 0 or col >= self.width or self.rows[row][col] != 0:
 				return False
 		return True
 
 	def move_inbounds(self, piece):
 		moved_piece = piece
-		for (row, col), _ in piece.iterate():
+		for (row, col), _ in piece:
 			if col < 0:
 				moved_piece = moved_piece.right
 			elif col >= self.width:
@@ -62,7 +62,7 @@ class Board:
 
 	def with_piece(self, piece, ch=None):
 		new_board = list(self.rows)
-		for (row_index, col), (r, c) in piece.iterate():
+		for (row_index, col), (r, c) in piece:
 			row = new_board[row_index]
 			char = ch or piece.shape[r][c]
 			new_row = row[:col] + (char,) + row[col+1:]
@@ -71,14 +71,11 @@ class Board:
 
 
 class Game:
-
 	def __init__(self, rows=23, cols=10):
 		self.landed = Board.empty(rows, cols)
-
 		self.deck = RollDeck(setup.pieces)
 		self.next_piece = self.create_piece()
 		self.curr_piece = None
-
 		self.cleared_lines = 0
 		self.has_ended = False
 		self.score = 0

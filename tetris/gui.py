@@ -1,12 +1,66 @@
 import os
 import sys
 import curses
+import textwrap
 from tetris.game import *
 from tetris.welcome import *
 from tetris import setup
 
+def clean_and_split(string):
+    lines = textwrap.dedent(string.strip()).splitlines()
+    return [l.strip() for l in lines if l.strip()]
+
+class Box:
+    def __init__(self, min_height=3, min_width=34):
+        self.min_height = min_height
+        self.min_width = min_width
+        self.lines = []
+
+    def add_text(self, text, padding_top=1):
+        if not self.lines:
+            padding_top = 0
+        lines = clean_and_split(text)
+        self.lines.extend(('',) * padding_top)
+        self.lines.extend(lines)
+        longest_line = max(len(line) for line in lines)
+        self.min_width = max(self.min_width, longest_line)
+        return self
+
+    def render(self, ui):
+        actual_height = len(self.lines)
+        padding = max(0, self.min_height - actual_height)
+
+        pad = '|{}|\n'.format(' '*self.min_width)
+        middle = '\n'.join('|{}|'.format(l.center(self.min_width)) for l in self.lines)
+
+        box_lines = clean_and_split("""
+        ┌{center}┐
+        {padding}
+        {middle}
+        {padding}
+        {extra}
+        └{center}┘
+        """.format(
+            center='-'*self.min_width,
+            padding=pad * (padding // 2),
+            extra=pad if padding % 2 == 1 else '',
+            middle=middle)
+        )
+
+        box_height = max(self.min_height, actual_height)
+        box_width = self.min_width + 2
+        pos = setup.Pos(
+            ui.height // 2 - box_height // 2,
+            ui.width // 2 - box_width // 2)
+
+        with open('debug.txt', 'a') as f:
+            print(padding, file=f)
+
+        for offset, line in enumerate(box_lines):
+            ui.stdscr.addstr(pos.y + offset, pos.x, line)
+
+
 class Main:
-    ### FIELDS and SETUP ###
     nextPieceBoarder = \
     ("┌------------------┐\n",
      "|    Next Piece    |\n",
@@ -18,7 +72,6 @@ class Main:
      "|                  |\n",
      "|                  |\n",
      "└------------------┘\n")
-    ########################
 
     def __init__(self):
         self.version = '1.0.0'
@@ -35,7 +88,7 @@ class Main:
         #  -- initialized in self.doRestart() -- #
         self.doRestart()
         ### other ###
-        self.rows, self.columns = \
+        self.height, self.width = \
                 [int(x) for x in os.popen('stty size', 'r').read().split()]
 
     def setupColors(self):
@@ -67,17 +120,9 @@ class Main:
                 self.stdscr.addstr(0, 0, welcomeMessage[animate_counter])
                 animate_counter += 1
                 if blink:
-                    self.stdscr.addstr(14, 22, "┌--------------------------------┐")
-                    self.stdscr.addstr(15, 22, "|                                |")
-                    self.stdscr.addstr(16, 22, "|                                |")
-                    self.stdscr.addstr(17, 22, "|                                |")
-                    self.stdscr.addstr(18, 22, "└--------------------------------┘")
+                    Box().render(self)
                 else:
-                    self.stdscr.addstr(14, 22, "┌--------------------------------┐")
-                    self.stdscr.addstr(15, 22, "|                                |")
-                    self.stdscr.addstr(16, 22, "|     Press ANY key to start!    |")
-                    self.stdscr.addstr(17, 22, "|                                |")
-                    self.stdscr.addstr(18, 22, "└--------------------------------┘")
+                    Box().add_text("Press ANY key to start!").render(self)
                 blink = not blink
                 blink_counter = 0
             refresh_counter += 1
@@ -156,20 +201,26 @@ class Main:
 
     def doPause(self):
         def printMenu():
-            self.stdscr.addstr(5, 24,  "┌--------------------------------┐")
-            self.stdscr.addstr(6, 24,  "|           GAME PAUSED          |")
-            self.stdscr.addstr(7, 24,  "|                                |")
-            self.stdscr.addstr(8, 24,  "| Controls:                      |")
-            self.stdscr.addstr(9, 24,  "|               ^ Rotate Piece   |")
-            self.stdscr.addstr(10, 24, "|               |                |")
-            self.stdscr.addstr(11, 24, "| Move left <--   --> Move right |")
-            self.stdscr.addstr(12, 24, "|               |                |")
-            self.stdscr.addstr(13, 24, "|               V Fall faster    |")
-            self.stdscr.addstr(14, 24, "|                                |")
-            self.stdscr.addstr(15, 24, "|    Type 'p' to resume,         |")
-            self.stdscr.addstr(16, 24, "|         'q' to quit            |")
-            self.stdscr.addstr(17, 24, "|         'r' to restart         |")
-            self.stdscr.addstr(18, 24, "└--------------------------------┘")
+            (Box()
+                .add_text("GAME PAUSED")
+                .add_text(
+                    """
+                             Rotate piece
+                                  ^
+                                  |
+                    Move left <--   --> Move right
+                                  |
+                                  V
+                              Fall faster
+                    """)
+                .add_text(
+                    """
+                    Type `p` to resume
+                         `q` to quit
+                         `r` to restart
+                         `spacebar` to drop
+                    """)
+            ).render(self)
             self.stdscr.refresh()
         printMenu()
         self.stdscr.nodelay(False)
@@ -215,25 +266,16 @@ class Main:
     def doGameOver(self):
         #self.stdscr.clear()
         #self.stdscr.addstr(11, 34, "Game Over!")
-
-        self.stdscr.addstr(10, 24, "┌--------------------------------┐")
-        self.stdscr.addstr(11, 24, "|                                |")
-        self.stdscr.addstr(12, 24, "|           Game Over!           |")
-        self.stdscr.addstr(13, 24, "|                                |")
-        self.stdscr.addstr(14, 24, "└--------------------------------┘")
+        Box().add_text("Game Over!").render(self)
         self.stdscr.refresh()
         curses.delay_output(1500)
-        self.stdscr.addstr(12, 24, "|         Score:  {:,}".format(self.g.score))
+        self.stdscr.addstr(13, 24, "|         Score:  {:,}".format(self.g.score))
         self.stdscr.refresh()
         curses.delay_output(1500)
-        self.stdscr.addstr(9, 24, "┌--------------------------------┐")
-        self.stdscr.addstr(10, 24, "|           Play again?          |")
-        self.stdscr.addstr(11, 24, "|                                |")
-        self.stdscr.addstr(13, 24, "|                                |")
-        self.stdscr.addstr(14, 24, "|     'y' for yes, 'n' for no    |")
-        self.stdscr.addstr(15, 24, "└--------------------------------┘")
-        # self.stdscr.addstr(11, 27, "       Play again?     ")
-        # self.stdscr.addstr(13, 27, "'y' for yes, 'n' for no")
+        (Box()
+            .add_text("Play again?")
+            .add_text("`y` for yes, `n` for no")
+        ).render(self)
         self.stdscr.refresh()
         self.stdscr.nodelay(False)
         c = self.stdscr.getch()
@@ -247,22 +289,16 @@ class Main:
 
     def doWin(self):
         #self.stdscr.clear()
-        self.stdscr.addstr(10, 24, "┌--------------------------------┐")
-        self.stdscr.addstr(11, 24, "|                                |")
-        self.stdscr.addstr(12, 24, "|            You win!            |")
-        self.stdscr.addstr(13, 24, "|                                |")
-        self.stdscr.addstr(14, 24, "└--------------------------------┘")
+        Box().add_text("You win!").render(self)
         self.stdscr.refresh()
         curses.delay_output(1500)
         self.stdscr.addstr(12, 24, "|         Score:  {:,}".format(self.g.score))
         self.stdscr.refresh()
         curses.delay_output(1500)
-        self.stdscr.addstr(10, 24, "┌--------------------------------┐")
-        self.stdscr.addstr(11, 24, "|           Play again?          |")
-        self.stdscr.addstr(11, 24, "|                                |")
-        self.stdscr.addstr(13, 24, "|                                |")
-        self.stdscr.addstr(13, 24, "|     'y' for yes, 'n' for no    |")
-        self.stdscr.addstr(14, 24, "└--------------------------------┘")
+        (Box()
+            .add_text("Play again?")
+            .add_text("`y` for yes, `n` for no")
+        ).render(self)
         self.stdscr.refresh()
         self.stdscr.nodelay(False)
         c = self.stdscr.getch()
@@ -275,11 +311,10 @@ class Main:
         self.stdscr.nodelay(True)
 
     def doQuit(self):
-        self.stdscr.addstr(10, 24, "┌--------------------------------┐")
-        self.stdscr.addstr(11, 24, "| Are you sure you want to quit? |")
-        self.stdscr.addstr(12, 24, "|                                |")
-        self.stdscr.addstr(13, 24, "|    'y' for yes, 'n' for no     |")
-        self.stdscr.addstr(14, 24, "└--------------------------------┘")
+        (Box()
+            .add_text("Are you sure you want to quit?")
+            .add_text("`y` for yes, `n` for no")
+        ).render(self)
         self.stdscr.refresh()
         c = self.stdscr.getch()
         while c not in (ord('y'), ord('n')):
