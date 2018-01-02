@@ -1,74 +1,5 @@
-import random
-from copy import deepcopy
 from tetris import setup
-
-HEIGHT = 10
-WIDTH = 23
-TIME_INTERVAL = 0.1
-
-class RollDeck():
-	def __init__(self, deck):
-		self.original = []
-		for _ in range(3):
-			self.original.extend(deck)
-		self.deck = RollDeck.shuffle(self.original)
-
-	def draw(self):
-		card = self.deck.pop()
-		if len(self.deck) < len(self.original) // 3:
-			self.deck = RollDeck.shuffle(self.original)
-		return card
-
-	@staticmethod
-	def shuffle(cards):
-		""" Return a new list of shuffled cards. """
-		return random.sample(cards, len(cards))
-
-
-class Board:
-	def __init__(self, rows):
-		self.rows = tuple(rows)
-		self.height = len(self.rows)
-		self.width = len(self.rows[0])
-
-	def __getitem__(self, index):
-		return self.rows[index]
-
-	@classmethod
-	def empty(cls, rows, cols):
-		rows = tuple((0,) * cols for _ in range(rows))
-		return cls(rows)
-
-	def collides_with(self, piece):
-		for (row, col), _ in piece:
-			if row >= len(self.rows) or self.rows[row][col] != 0:
-				return True
-		return False
-
-	def contains(self, piece):
-		for (row, col), _ in piece:
-			if col < 0 or col >= self.width or self.rows[row][col] != 0:
-				return False
-		return True
-
-	def move_inbounds(self, piece):
-		moved_piece = piece
-		for (row, col), _ in piece:
-			if col < 0:
-				moved_piece = moved_piece.right
-			elif col >= self.width:
-				moved_piece = moved_piece.left
-		return moved_piece
-
-	def with_piece(self, piece, ch=None):
-		new_board = list(self.rows)
-		for (row_index, col), (r, c) in piece:
-			row = new_board[row_index]
-			char = ch or piece.shape[r][c]
-			new_row = row[:col] + (char,) + row[col+1:]
-			new_board[row_index] = tuple(new_row)
-		return Board(new_board)
-
+from tetris.setup import Board, RollDeck
 
 class Game:
 	def __init__(self, rows=23, cols=10):
@@ -144,9 +75,8 @@ class Game:
 		self.score += score * combo
 
 	def __str__(self):
-		board = self.landed
 		piece = self.simulate_land()
-		board = board.with_piece(piece, 9).with_piece(self.curr_piece)
+		board = self.landed.with_piece(piece, 9).with_piece(self.curr_piece)
 		result = ".." * (board.width + 2) + "\n"
 		for r in range(1, board.height):
 			result += "||"
