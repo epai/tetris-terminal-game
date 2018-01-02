@@ -1,8 +1,6 @@
 # tetris-terminal-game
 
-Tetris Clone.  Runs in terminal.  Implemented in Python using ncurses library.
-
-***IMPORTANT:  MUST HAVE PYTHON3 INSTALLED TO RUN!***
+Tetris Clone.  Runs in terminal.  Implemented in Python3 using ncurses library.
 
 ## Setup
 
@@ -11,6 +9,8 @@ To run, type:
 ```
 python3 tetris.py
 ```
+
+Note that the game currently only runs on macOS with Python 3+!
 
 ## Objective
 
@@ -27,41 +27,12 @@ Try to get to level 11!
 "p" - pause game
 "q" - quit game
 
-Thanks for playing!
+## What was the original motivation?
 
-
-## TO-DO LIST
-
-### Game Mechanics
-
-- wall kicking
-- line completion (sort of)
-- "levels" and associated falling speeds (YES!)
-- score (sort of)
-- "next piece" box (YES!)
-- "retry" option, after losing (YES!)
-- ghosting
-
-### Extras/Aesthetics
-
-- ~~home page~~
-- ~~"lose" mechanism~~
-- ~~"quit" mechanism~~
-- "clear line" animations (Maybe later...)
-- ~~adjust layout/make more clean~~
-- add "juciness" (nope)
-- make screen adjustable? (nope)
-- high score system
-
-### Other
-
-- get tested and advice from other people
-- show andrew as a going-away present!
--
+A friend (@jordonwii) told @epai that animation in the terminal couldn't be done.  @epai wanted to prove him wrong, and then some.  So @epai started implementing a full functioning tetris in the terminal. :)
 
 ## Special Thanks
-- carlos caballero
-- jordon wing
 
-## P.S. What was my motivation?
-A friend told me that animation in the terminal couldn't be done.  I wanted to prove him wrong, and then some.  So I implemented a full functioning tetris in the terminal. :)
+Special Thanks to all contributors!  Pull requests are always welcome, and feel free to leave an issue if you find any bugs or have any suggestions.
+
+Thanks for playing!
