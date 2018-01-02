@@ -1,6 +1,6 @@
-from tetris.gui import Main
+from tetris.gui import UI
 
-m = Main()
+m = UI()
 
 try:
     m.doWelcome()
