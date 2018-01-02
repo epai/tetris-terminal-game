@@ -58,7 +58,7 @@ class Box:
 
         for offset, line in enumerate(box_lines):
             ui.stdscr.addstr(pos.y + offset, pos.x, line)
-
+        ui.stdscr.refresh()
 
 class UI:
     nextPieceBoarder = \
@@ -95,7 +95,7 @@ class UI:
             self.stdscr.nodelay(False)
 
         special = {
-            'up': curses.KEY_LEFT,
+            'up': curses.KEY_UP,
             'down': curses.KEY_DOWN,
             'left': curses.KEY_LEFT,
             'right': curses.KEY_RIGHT,}
@@ -135,10 +135,8 @@ class UI:
                         break
             if refresh_counter == 10:
                 refresh_counter = 1
-                if animate_counter == len(welcomeMessage):
-                    animate_counter = 0
                 self.stdscr.addstr(0, 0, welcomeMessage[animate_counter])
-                animate_counter += 1
+                animate_counter = (animate_counter + 1) % len(welcomeMessage)
                 if blink:
                     Box().render(self)
                 else:
@@ -217,8 +215,7 @@ class UI:
         self.g.move_piece(last_move)
 
     def doPause(self):
-        def printMenu():
-            (Box()
+        pause_box = (Box()
                 .add_text("GAME PAUSED")
                 .add_text(
                     """
@@ -237,13 +234,13 @@ class UI:
                          `r` to restart
                          `spacebar` to drop
                     """)
-            ).render(self)
-            self.stdscr.refresh()
-        printMenu()
+            )
+
+        pause_box.render(self)
         with self.get_key('qr') as key:
             if key == 'q':
                 self.doQuit()
-                printMenu()
+                pause_box.render(self)
             if key == 'r':
                 self.restart = True
 
@@ -278,7 +275,6 @@ class UI:
 
     def doGameOver(self):
         Box().add_text("Game Over!").render(self)
-        self.stdscr.refresh()
         curses.delay_output(1500)
         self.stdscr.addstr(13, 24, "|         Score:  {:,}".format(self.g.score))
         self.stdscr.refresh()
@@ -293,7 +289,6 @@ class UI:
 
     def doWin(self):
         Box().add_text("You win!").render(self)
-        self.stdscr.refresh()
         curses.delay_output(1500)
         self.stdscr.addstr(12, 24, "|         Score:  {:,}".format(self.g.score))
         self.stdscr.refresh()
