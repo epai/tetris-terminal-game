@@ -38,10 +38,8 @@ class Game:
 			fallen = self.fall_piece()
 
 	def move_piece(self, movedir):
-		if not movedir:
-			return
 		piece = self.curr_piece
-		moved_piece = piece.left if movedir == -1 else piece.right
+		moved_piece = piece.left if movedir == 'left' else piece.right
 		if self.landed.contains(moved_piece):
 			self.curr_piece = moved_piece
 
@@ -70,7 +68,7 @@ class Game:
 				empty = (0,) * self.landed.width
 				self.landed = Board((empty,) + self.landed.rows[:row] + self.landed.rows[row+1:])
 				self.cleared_lines += 1
-				score += self.landed.width * self.level * 1000 # arbitrary score calculation...
+				score += self.landed.width * self.level * 10 # arbitrary score calculation...
 				combo += 1
 		self.score += score * combo
 

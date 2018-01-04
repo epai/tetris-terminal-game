@@ -6,73 +6,90 @@ from contextlib import contextmanager
 
 from tetris.game import *
 from tetris.welcome import *
-from tetris import setup
+from tetris.setup import *
 from tetris.constants import TIME_INTERVAL, VERSION
+
+from tetris import logger
 
 def clean_and_split(string):
     lines = textwrap.dedent(string.strip()).splitlines()
     return [l.strip() for l in lines if l.strip()]
 
 class Box:
-    def __init__(self, min_height=3, min_width=34):
+    def __init__(self, *args, min_height=3, min_width=34):
         self.min_height = min_height
         self.min_width = min_width
         self.lines = []
 
-    def add_text(self, text, padding_top=1):
-        if not self.lines:
-            padding_top = 0
-        lines = clean_and_split(text)
-        self.lines.extend(('',) * padding_top)
-        self.lines.extend(lines)
-        longest_line = max(len(line) for line in lines)
-        self.min_width = max(self.min_width, longest_line)
+        for i, text in enumerate(args):
+            bottom = 0 if i == len(args) - 1 else 1
+            self.add_text(text, bottom=bottom)
+
+    def add_text(self, text, top=0, bottom=0, color=None):
+        pad = (('', color),)
+        if not text:
+            self.lines.extend(pad)
+        else:
+            lines = clean_and_split(text)
+            self.lines.extend(pad * top)
+            self.lines.extend(zip(lines, (color,) * len(lines)))
+            self.lines.extend(pad * bottom)
+            longest_line = max(len(line) for line in lines)
+            self.min_width = max(self.min_width, longest_line)
+            return self # for fluid interface
+
+    def render(self, ui, pos=None):
+        actual_height = len(self.lines)
+        pad_amount = max(0, self.min_height - actual_height)
+        box_height = max(self.min_height, actual_height)
+        pos = pos or Pos(
+            ui.height // 2 - box_height // 2,
+            ui.width // 2 - self.min_width // 2 - 1)
+
+        offset = 0
+        def add_line(line, color=None):
+            nonlocal offset
+            color = color or ui.board_color
+            ui.stdscr.addstr(pos.y + offset, pos.x, line, color)
+            offset += 1
+
+        def add_lines(lines, colored=False):
+            for line in lines:
+                color = None
+                if colored:
+                    line, color = line
+                add_line(line, color)
+
+        center = '-'*self.min_width
+        pad = '|{}|'.format(' '*self.min_width)
+        padding = (pad,) * (pad_amount // 2)
+        lines = (('|{}|'.format(l.center(self.min_width)), c) for l,c in self.lines)
+
+        add_line('┌{}┐'.format(center))
+        add_lines((pad,) * (pad_amount // 2))
+        add_lines(lines, colored=True)
+        add_lines((pad,) * (pad_amount // 2 + pad_amount % 2))
+        add_line('└{}┘'.format(center))
+
+class Dialog(Box):
+    def __init__(self, *args, min_height=3, min_width=34, **kwargs):
+        super().__init__(*args, min_height=min_height, min_width=min_width)
+        self.add_keys(**kwargs)
+
+    def add_keys(self, **kwargs):
+        self.keys = kwargs.keys()
+        self.add_text(None) # ne
+        for key, msg in kwargs.items():
+            self.add_text("Press `{}` to {}".format(key, msg))
         return self
 
-    def render(self, ui):
-        actual_height = len(self.lines)
-        padding = max(0, self.min_height - actual_height)
-
-        pad = '|{}|\n'.format(' '*self.min_width)
-        middle = '\n'.join('|{}|'.format(l.center(self.min_width)) for l in self.lines)
-
-        box_lines = clean_and_split("""
-        ┌{center}┐
-        {padding}
-        {middle}
-        {padding}
-        {extra}
-        └{center}┘
-        """.format(
-            center='-'*self.min_width,
-            padding=pad * (padding // 2),
-            extra=pad if padding % 2 == 1 else '',
-            middle=middle)
-        )
-
-        box_height = max(self.min_height, actual_height)
-        box_width = self.min_width + 2
-        pos = setup.Pos(
-            ui.height // 2 - box_height // 2,
-            ui.width // 2 - box_width // 2)
-
-        for offset, line in enumerate(box_lines):
-            ui.stdscr.addstr(pos.y + offset, pos.x, line)
-        ui.stdscr.refresh()
+    @contextmanager
+    def response(self, ui):
+        self.render(ui)
+        with ui.get_key(self.keys, delay=True) as key:
+            yield key
 
 class UI:
-    nextPieceBoarder = \
-    ("┌------------------┐\n",
-     "|    Next Piece    |\n",
-     "|==================|\n",
-     "|                  |\n",
-     "|                  |\n",
-     "|                  |\n",
-     "|                  |\n",
-     "|                  |\n",
-     "|                  |\n",
-     "└------------------┘\n")
-
     def __init__(self):
         # setup curses
         self.stdscr = curses.initscr()
@@ -89,7 +106,7 @@ class UI:
                 [int(x) for x in os.popen('stty size', 'r').read().split()]
 
     @contextmanager
-    def get_key(self, keys, delay=True):
+    def get_key(self, keys, delay=True, reactivity=10):
         if delay:
             self.stdscr.refresh()
             self.stdscr.nodelay(False)
@@ -102,9 +119,12 @@ class UI:
         keynum = lambda k: special[k] if k in special else ord(k)
         key_map = {keynum(k):k for k in keys}
 
-        c = self.stdscr.getch()
-        while delay and c not in key_map:
-            c = self.stdscr.getch()
+        i, c = 0, self.stdscr.getch()
+        while (delay and c not in key_map) or (not delay and i < reactivity):
+            getched = self.stdscr.getch()
+            if getched != -1:
+                c = getched
+            i += 1
         try:
             yield key_map.get(c, None)
 
@@ -122,31 +142,24 @@ class UI:
 
     def doWelcome(self):
         self.stdscr.addstr(0, 0, welcomeMessage[0])
-        start = False
-        blink_counter = 1
         blink = True
         animate_counter = 0
-        refresh_counter = 10
-        while (not start):
-            for i in range(1000):
-                with self.get_key(' ', delay=False) as key:
-                    if key == ' ':
-                        start = True
-                        break
-            if refresh_counter == 10:
-                refresh_counter = 1
+        refresh_counter = 0
+        while True:
+            with self.get_key(' ', delay=False) as key:
+                if key == ' ':
+                    return
+            if refresh_counter % 10 == 0:
                 self.stdscr.addstr(0, 0, welcomeMessage[animate_counter])
                 animate_counter = (animate_counter + 1) % len(welcomeMessage)
                 if blink:
                     Box().render(self)
                 else:
-                    Box().add_text("Press SPACEBAR to start!").render(self)
+                    Box("Press SPACEBAR to start!").render(self)
                 blink = not blink
-                blink_counter = 0
             refresh_counter += 1
-            self.stdscr.addstr(23, 0, "{0} Eric Pai ©2014".format(VERSION))
-            curses.delay_output(5)
-            blink_counter += 1
+            self.stdscr.addstr(23, 0, "{0} Eric Pai ©2014-2017".format(VERSION))
+            curses.delay_output(10)
             self.stdscr.refresh()
 
     def gameLoop(self):
@@ -154,7 +167,7 @@ class UI:
             self.doRestart()
             while True:
                 if self.g.has_ended:
-                    self.doGameOver()
+                    self.doEnding("Game Over!")
                 if self.has_landed:
                     self.g.new_piece()
                     self.has_landed = False
@@ -162,10 +175,10 @@ class UI:
                     self.doMove()
                     if self.restart:
                         break
-                    if not self.has_landed and \
-                           self.down_counter == self.down_constant:  # do fall
+                    if not self.has_landed and self.down_counter == self.down_constant or self.fast_fall:  # do fall
                         self.has_landed = self.g.fall_piece()
                         self.down_counter = 1
+                        self.fast_fall = False
                 self.refreshAnimation()
 
     def displayBoard(self):
@@ -185,62 +198,48 @@ class UI:
                     self.stdscr.addstr(y, x, ch, self.board_color)
 
     def doMove(self):
-        last_move = 0
         keys = 'up,down,left,right,p,q, '.split(',')
-        for i in range(1000):  # improves reactivity
-            with self.get_key(keys, delay=False) as key:
-                if key == 'down': # moves piece down faster
-                    self.down_counter = self.down_constant
-                    curses.delay_output(self.time)
-                    if not self.has_landed:
-                        self.has_landed = self.g.fall_piece()
-                        self.displayBoard()
-                    if self.has_landed:
-                        self.down_counter = 1
-                elif key == 'left': # moves blocks to the left
-                    last_move = -1
-                elif key == 'right': # moves piece to the right
-                    last_move = 1
-                elif key == 'up': # rotates piece
-                    self.g.rotate_piece()
-                elif key == 'p':
-                    self.doPause()
-                elif key == ' ': # if spacebar, immediately drop to bottom
-                    self.g.drop_piece()
-                    self.has_landed = True
-                    break
-                elif key == 'q':
-                    self.doQuit()
+        with self.get_key(keys, delay=False) as key:
+            if key == 'down': # moves piece down faster
+                self.fast_fall = True
+                curses.delay_output(self.time)
+                if not self.has_landed:
+                    self.has_landed = self.g.fall_piece()
+                    self.displayBoard()
+                if self.has_landed:
+                    self.fast_fall = False
                     self.down_counter = 1
-        self.g.move_piece(last_move)
+            elif key == 'left': # moves blocks to the left
+                self.g.move_piece('left')
+            elif key == 'right': # moves piece to the right
+                self.g.move_piece('right')
+            elif key == 'up': # rotates piece
+                self.g.rotate_piece()
+            elif key == 'p':
+                self.doPause()
+            elif key == ' ': # if spacebar, immediately drop to bottom
+                self.g.drop_piece()
+                self.has_landed = True
+            elif key == 'q':
+                self.doQuit()
 
     def doPause(self):
-        pause_box = (Box()
-                .add_text("GAME PAUSED")
-                .add_text(
-                    """
-                             Rotate piece
-                                  ^
-                                  |
-                    Move left <--   --> Move right
-                                  |
-                                  V
-                              Fall faster
-                    """)
-                .add_text(
-                    """
-                    Type `p` to resume
-                         `q` to quit
-                         `r` to restart
-                         `spacebar` to drop
-                    """)
-            )
+        dialog = Dialog("GAME PAUSED",
+            """
+                     Rotate piece
+                          ^
+                          |
+            Move left <--   --> Move right
+                          |
+                          V
+                      Fall faster
+            """,
+            '`spacebar` == Drop Piece',
+            p='resume', q='quit', r='restart')
 
-        pause_box.render(self)
-        with self.get_key('qr') as key:
+        with dialog.response(self) as key:
             if key == 'q':
                 self.doQuit()
-                pause_box.render(self)
             if key == 'r':
                 self.restart = True
 
@@ -249,70 +248,52 @@ class UI:
         curses.delay_output(self.time) # change so updates in real time
         self.down_counter += 1
         self.displayBoard()
+        left = 28
         # score
-        self.stdscr.addstr(20, 52, "lines completed: {0}".format(self.g.cleared_lines))
-        self.stdscr.addstr(22, 42, "Type 'q' to quit or 'p' for pause.")
-        self.stdscr.addstr(15, 52, "level: {0}".format(self.g.level))
-        self.stdscr.addstr(17, 48, "--------------------------")
-        self.stdscr.addstr(18, 48, "    Score {:,}             ".format(self.g.score))
-        self.stdscr.addstr(19, 48, "--------------------------")
+        Box("level: {}".format(self.g.level),
+            "lines: {}".format(self.g.cleared_lines),
+            min_width=18
+        ).render(self, pos=Pos(11, left))
+        Box("score", '{} pts'.format(self.g.score), min_width=18).render(self, pos=Pos(19, left))
         # next piece box
-        for i in range(len(self.nextPieceBoarder)):
-            self.stdscr.addstr(i + 1, 49, self.nextPieceBoarder[i])
+        Box(min_width=18, min_height=6).render(self, pos=Pos(2, left))
         nextPieceLines = self.g.next_piece.to_lines()
         for i, line in enumerate(nextPieceLines):
             for j, ch in enumerate(line):
                 if ch.isdigit():
-                    color = int(ch)
-                    self.stdscr.addstr(i + 5, 56 + j, ch, curses.color_pair(color))
-                else:
-                    self.stdscr.addstr(i + 5, 56 + j, ch, self.board_color)
+                    self.stdscr.addstr(i + 4, left + 7 + j, ch, curses.color_pair(int(ch)))
+        Box("Next Piece", min_width=18, min_height=0).render(self, pos=Pos(1, left))
+        # increment level
         if self.g.cleared_lines - self.level_constant*self.g.level >= 0:
             self.down_constant -= self.level_decrement
             self.g.level += 1
             if self.g.level == 11:
-                self.doWin()
+                self.doEnding('You Win!')
+        self.stdscr.refresh()
 
-    def doGameOver(self):
-        Box().add_text("Game Over!").render(self)
-        curses.delay_output(1500)
-        self.stdscr.addstr(13, 24, "|         Score:  {:,}".format(self.g.score))
+    def doEnding(self, end_text):
+        Box(end_text).render(self)
         self.stdscr.refresh()
         curses.delay_output(1500)
-        (Box()
-            .add_text("Play again?")
-            .add_text("`y` for yes, `n` for no")
-        ).render(self)
-        with self.get_key('yn') as key:
-            if key == 'n':
-                raise ZeroDivisionError
-
-    def doWin(self):
-        Box().add_text("You win!").render(self)
-        curses.delay_output(1500)
-        self.stdscr.addstr(12, 24, "|         Score:  {:,}".format(self.g.score))
+        score = "Score: {:,}".format(self.g.score)
+        Box("Score: {:,}".format(self.g.score)).render(self)
         self.stdscr.refresh()
         curses.delay_output(1500)
-        (Box()
-            .add_text("Play again?")
-            .add_text("`y` for yes, `n` for no")
-        ).render(self)
-        with self.get_key('yn') as key:
+        dialog = Dialog("Play again?", score, y='play again', n='quit')
+        with dialog.response(self) as key:
             if key == 'n':
                 raise ZeroDivisionError
 
     def doQuit(self):
-        (Box()
-            .add_text("Are you sure you want to quit?")
-            .add_text("`y` for yes, `n` for no")
-        ).render(self)
-        with self.get_key('yn') as key:
+        dialog = Dialog("Are you sure you want to quit?", y='quit', n='not')
+        with dialog.response(self) as key:
             if key == 'y':
                 raise ZeroDivisionError
 
     def doRestart(self):
         self.g = Game()
         self.time = 5
+        self.fast_fall = False
         self.has_landed = True
         self.down_counter = 1
         self.down_constant = 100
