@@ -1,4 +1,4 @@
-welcomeMessage = [
+welcome_message = [
         """
              [3][3][3]                 [6]
              [3]                    [6][6][6]        [1][1][1][1]

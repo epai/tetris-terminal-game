@@ -1,10 +1,10 @@
-from tetris import setup
-from tetris.setup import Board, RollDeck
+from tetris.core import prototypes, pieces
+from tetris.core.objects import Board, RollDeck, Pos
 
 class Game:
 	def __init__(self, rows=23, cols=10):
 		self.landed = Board.empty(rows, cols)
-		self.deck = RollDeck(setup.pieces)
+		self.deck = RollDeck(pieces)
 		self.next_piece = self.create_piece()
 		self.curr_piece = None
 		self.cleared_lines = 0
@@ -14,8 +14,8 @@ class Game:
 
 	def create_piece(self):
 		proto_piece = self.deck.draw()
-		col = 0 if proto_piece == setup.prototypes['I'] else 3
-		return proto_piece.create(origin=setup.Pos(0, col))
+		col = 0 if proto_piece == prototypes['I'] else 3
+		return proto_piece.create(origin=Pos(0, col))
 
 	def new_piece(self):
 		self.curr_piece = self.next_piece
